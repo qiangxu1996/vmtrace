@@ -1,0 +1,3 @@
+AnotherClass:
+    50:50:AnotherClass(int,TestSubclass)
+RemovedSubclass

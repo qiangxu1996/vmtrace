@@ -1,0 +1,44 @@
+apply plugin: 'java'
+apply plugin: 'kotlin'
+apply plugin: 'jacoco-tools-base'
+
+import org.gradle.internal.jvm.Jvm
+
+group = 'com.android.tools.lint'
+archivesBaseName = 'lint-tests'
+version = rootProject.ext.baseVersion
+
+dependencies {
+    compile project(':base:lint')
+    compile project(':base:intellij-core')
+    compile project(':base:kotlin-compiler')
+    compile project(':base:uast')
+    compile project(':base:layoutlib-api')
+    compile project(':base:testutils')
+    compile libs.junit
+    compile libs.groovy
+    compile libs.mockito_core
+
+    testCompile project(':analytics-library:shared')
+    testCompile project(':analytics-library:protos')
+    testCompile project(':analytics-library:tracker')
+    testCompile project(':analytics-library:testing')
+    testCompile project(':base:apkparser:binary-resources')
+    testCompile project(':base:apkparser:apkanalyzer')
+    testCompile libs.truth
+    testCompile files(Jvm.current().toolsJar)
+
+}
+
+sourceSets {
+    main.resources.srcDir 'src/main/java'
+    test.resources.srcDir 'src/test/java'
+}
+
+project.ext.pomName = 'Android Tools Lint Test API'
+project.ext.pomDesc = 'API to build lint check tests'
+
+apply from: "$rootDir/buildSrc/base/publish.gradle"
+apply from: "$rootDir/buildSrc/base/bintray.gradle"
+apply from: "$rootDir/buildSrc/base/javadoc.gradle"
+

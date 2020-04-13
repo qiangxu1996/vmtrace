@@ -1,0 +1,297 @@
+/*
+ * Copyright (C) 2016 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+
+package profiler.proto;
+option java_package = "com.android.tools.profiler.proto";
+option java_outer_classname = "MemoryProfiler";
+
+import "common.proto";
+import "memory_data.proto";
+
+service MemoryService {
+  rpc StartMonitoringApp(MemoryStartRequest) returns (MemoryStartResponse) {
+  }
+  rpc StopMonitoringApp(MemoryStopRequest) returns (MemoryStopResponse) {
+  }
+
+  // Get all memory data not related to live allocation for an app
+  // within a specified time request.
+  // These include the various memory levels, allocation count + gc events.
+  rpc GetData(MemoryRequest) returns (MemoryData) {
+  }
+  // Get live allocation memory data for an app within a specified time request.
+  // These includes alloc events, dealloc events and callstacks
+  rpc GetJvmtiData(MemoryRequest) returns (MemoryData) {
+  }
+  rpc TriggerHeapDump(TriggerHeapDumpRequest) returns (TriggerHeapDumpResponse) {
+  }
+  // List all heap dump records for an app within a specified time request.
+  rpc ListHeapDumpInfos(ListDumpInfosRequest) returns (ListHeapDumpInfosResponse) {
+  }
+
+  // Import heap dump data
+  rpc ImportHeapDump(ImportHeapDumpRequest) returns (ImportHeapDumpResponse) {
+  }
+
+  // Enable or disable an allocation tracking session.
+  // Note that for pre-O, this call is handled on Studio side within the proxy
+  // layer, and allocation records are fetched upon the completion of a tracking
+  // session. For O+, this toggles live allocation tracking within the app,
+  // and allocation data is returned while the session is in progress.
+  rpc TrackAllocations(TrackAllocationsRequest)
+      returns (TrackAllocationsResponse) {}
+
+  // Pre-O only: Import saved allocation records.
+  rpc ImportLegacyAllocations(ImportLegacyAllocationsRequest)
+      returns (ImportLegacyAllocationsResponse) {}
+
+  // O+ studio-side only:
+  // This returns all allocation + deallocation events that happened
+  // within the request's start and end times.
+  rpc GetAllocationEvents(AllocationSnapshotRequest)
+      returns (AllocationEventsResponse) {}
+
+  // O+ studio-side only: Grabs the allocation classes and callstack info for
+  // GetAllocations results.
+  rpc GetAllocationContexts(AllocationContextsRequest)
+      returns (AllocationContextsResponse) {}
+
+  // O+ studio-side only: Fetches the class + method names associated with
+  // a |method_id| within a tracking session.
+  rpc GetStackFrameInfo(StackFrameInfoRequest)
+      returns (StackFrameInfoResponse) {}
+
+  rpc ForceGarbageCollection(ForceGarbageCollectionRequest)
+      returns (ForceGarbageCollectionResponse) {}
+
+  // O+ only: Updates the allocation tracking sampling rate during
+  // a live session.
+  rpc SetAllocationSamplingRate(SetAllocationSamplingRateRequest)
+      returns (SetAllocationSamplingRateResponse) {}
+
+  // O+ studio-side only: Given a time interval returns a set of all events
+  // related to creations and deletions of global JNI references.
+  rpc GetJNIGlobalRefsEvents(JNIGlobalRefsEventsRequest)
+      returns (JNIGlobalRefsEventsResponse) {}
+}
+
+message MemoryStartRequest {
+  Session session = 1;
+}
+
+message MemoryStartResponse {
+  enum Status {
+    UNSPECIFICED = 0;
+    SUCCESS = 1;
+    FAILURE_UNKNOWN = 2;
+  }
+  Status status = 1;
+}
+
+message MemoryStopRequest {
+  Session session = 1;
+}
+
+message MemoryStopResponse {
+  enum Status {
+    UNSPECIFICED = 0;
+    SUCCESS = 1;
+    FAILURE_UNKNOWN = 2;
+  }
+  Status status = 1;
+}
+
+message MemoryRequest {
+  Session session = 1;
+  int64 start_time = 2;  // exclusive
+  int64 end_time = 3;    // inclusive
+}
+
+message MemoryData {
+  message MemorySample {
+    int64 timestamp = 1;
+    MemoryUsageData memory_usage = 2;
+  }
+
+  message AllocStatsSample {
+    int64 timestamp = 1;
+    MemoryAllocStatsData alloc_stats = 2;
+  }
+
+  message GcStatsSample {
+    int64 start_time = 1;
+    int64 end_time = 2;
+    // TODO add deallocation stats
+  }
+
+  // end timestamp after which values are yet to be queried for
+  int64 end_timestamp = 1;
+  repeated MemorySample mem_samples = 2;
+  repeated AllocStatsSample alloc_stats_samples = 3;
+  repeated GcStatsSample gc_stats_samples = 4;
+  repeated HeapDumpInfo heap_dump_infos = 5;
+  repeated AllocationsInfo allocations_info = 6;
+  repeated BatchAllocationContexts batch_allocation_contexts = 7;
+  repeated BatchAllocationEvents batch_allocation_events = 8;
+  repeated BatchJNIGlobalRefEvent jni_reference_event_batches = 9;
+  repeated AllocationSamplingRateEvent alloc_sampling_rate_events = 10;
+}
+
+message TriggerHeapDumpRequest {
+  Session session = 1;
+  int64 request_time = 2;
+}
+
+message TriggerHeapDumpResponse {
+  HeapDumpStatus status = 1;
+  // Returns the HeapDumpInfo immediately so the caller can
+  // optionally track its completion
+  HeapDumpInfo info = 2;
+}
+
+message ImportHeapDumpRequest {
+  Session session = 1;
+  bytes data = 2;
+  HeapDumpInfo info = 3;
+}
+
+message ImportHeapDumpResponse {
+  enum Status {
+    UNSPECIFIED = 0;
+    SUCCESS = 1;
+    FAILURE = 2;
+  }
+  Status status = 1;
+}
+
+message ListDumpInfosRequest {
+  Session session = 1;
+  int64 start_time = 2;  // exclusive
+  int64 end_time = 3;    // inclusive
+}
+
+message ListHeapDumpInfosResponse {
+  repeated HeapDumpInfo infos = 1;
+}
+
+message TrackAllocationsResponse {
+  TrackStatus status = 1;
+  AllocationsInfo info = 2;
+}
+
+// Represents an event when live allocations are recorded with a new
+// MemoryAllocSamplingData. Note that this message is not used by the legacy
+// allocation tracking.
+message AllocationSamplingRateEvent {
+  int64 timestamp = 1;
+  MemoryAllocSamplingData sampling_rate = 2;
+}
+
+message TrackAllocationsRequest {
+  Session session = 1;
+  int64 request_time = 2;
+  // Requests whether an allocation tracking session is
+  // to be enabled/disabled. If a session is already in
+  // progress, re-enabling it does nothing, this is also
+  // true for disabling a session when no tracking is in
+  // progress.
+  bool enabled = 3;
+  // A flag to indicate whether the request is initiated
+  // via the legacy allocation tracking path. On pre-O
+  // setups, legacy tracking would simply mark the start
+  // and end times of a session. On O+ setups, perfd +
+  // the agent would perform allocation tracking.
+  bool legacy = 4;
+}
+
+message ImportLegacyAllocationsRequest {
+  Session session = 1;
+  AllocationsInfo info = 2;
+  bytes data = 3;
+}
+
+message ImportLegacyAllocationsResponse {
+  enum Status {
+    UNSPECIFIED = 0;
+    SUCCESS = 1;
+    FAILURE = 2;
+  }
+  Status status = 1;
+}
+
+message AllocationContextsRequest {
+  Session session = 1;
+  int64 start_time = 2;
+  int64 end_time = 3;
+}
+
+message AllocationContextsResponse {
+  repeated BatchAllocationContexts contexts = 1;
+}
+
+message StackFrameInfoRequest {
+  Session session = 1;
+  int64 method_id = 2;
+}
+
+message StackFrameInfoResponse {
+  string class_name = 1;
+  string method_name = 2;
+}
+
+message AllocationSnapshotRequest {
+  Session session = 1;
+  int64 start_time = 2;  // inclusive;
+  // NOTE that compared to other proto request, end_time here
+  // is exclusive as ongoing live instances are set to have a
+  // free_timestamp of Long.MAX_VALUE. This allows us to naturally
+  // query for all current live instances by passing in MAX_VALUE
+  // as the end_time, without having to special case an invalid
+  // duration value.
+  int64 end_time = 3; // exclusive;
+
+  // Ignore |start_time| - include only objects that are still
+  // alive at point in time specified by |end_time|
+  bool live_objects_only = 4;
+}
+
+message AllocationEventsResponse {
+  repeated BatchAllocationEvents events = 1;
+}
+
+message JNIGlobalRefsEventsRequest {
+  Session session = 1;
+  int64 start_time = 2;  // inclusive;
+  int64 end_time = 3; // exclusive;
+}
+
+message JNIGlobalRefsEventsResponse {
+  repeated BatchJNIGlobalRefEvent events = 1;
+}
+
+message ForceGarbageCollectionRequest {
+  Session session = 1;
+}
+
+message ForceGarbageCollectionResponse {}
+
+message SetAllocationSamplingRateRequest {
+  Session session = 1;
+  MemoryAllocSamplingData sampling_rate = 2;
+}
+
+message SetAllocationSamplingRateResponse {}

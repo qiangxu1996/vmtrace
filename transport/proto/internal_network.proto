@@ -1,0 +1,91 @@
+/*
+ * Copyright (C) 2016 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+
+package profiler.proto;
+
+import "network.proto";
+
+service InternalNetworkService {
+  rpc SendChunk(ChunkRequest) returns (EmptyNetworkReply) {}
+  rpc SendHttpEvent(HttpEventRequest) returns (EmptyNetworkReply) {}
+  rpc SendHttpRequest(HttpRequestRequest) returns (EmptyNetworkReply) {}
+  rpc SendHttpResponse(HttpResponseRequest) returns (EmptyNetworkReply) {}
+  rpc TrackThread(JavaThreadRequest) returns (EmptyNetworkReply) {}
+}
+
+// A small chunk of a body of data large enough that we want to stream it in
+// pieces instead of all at once.
+message ChunkRequest {
+  enum Type {
+    UNSPECIFIED = 0;
+    // This is a chunk of a request (uploaded) body
+    REQUEST = 1;
+    // This is a chunk of a response (downloaded) body
+    RESPONSE = 2;
+  }
+  int64 conn_id = 1;
+  bytes content = 2;
+  Type type = 3;
+}
+
+// An tracking message for an important moment in the lifetime of an HTTP
+// request.
+message HttpEventRequest {
+  enum Event {
+    UNSPECIFIED = 0;
+    UPLOAD_STARTED = 1;
+    UPLOAD_COMPLETED = 2;
+    DOWNLOAD_STARTED = 3;
+    DOWNLOAD_COMPLETED = 4;
+    ABORTED = 5;
+  }
+
+  int64 conn_id = 1;
+  int64 timestamp = 2;
+  Event event = 3;
+}
+
+// Request data of HTTP connection, used to communicate with perfd that a new
+// request was created. This also notifies the system that we are using a
+// unique ID value to represent this request from now on in future GRPC messages
+// associated with this connection.
+message HttpRequestRequest {
+  int64 conn_id = 1;
+  int64 start_timestamp = 2;
+  int32 pid = 3;
+  string url = 4;
+  string trace = 5;
+  // Header fields associated with this request. See also:
+  // https://en.wikipedia.org/wiki/List_of_HTTP_header_fields#Request_fields.
+  string fields = 6;
+  string method = 7;
+}
+
+// Response data of HTTP connection.
+message HttpResponseRequest {
+  int64 conn_id = 1;
+  // Header fields associated with this response. See also:
+  // https://en.wikipedia.org/wiki/List_of_HTTP_header_fields#Response_fields.
+  string fields = 2;
+}
+
+message JavaThreadRequest {
+  int64 conn_id = 1;
+  JavaThread thread = 2;
+}
+
+message EmptyNetworkReply {}

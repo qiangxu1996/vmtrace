@@ -1,0 +1,36 @@
+apply plugin: 'java'
+apply plugin: 'kotlin'
+apply plugin: 'jacoco-tools-base'
+
+group = 'com.android.tools'
+archivesBaseName = 'testutils'
+version = rootProject.ext.baseVersion
+
+dependencies {
+    compile project(':base:common')
+    compile libs.kotlin_stdlib
+    compile libs.kotlin_test
+    compile libs.junit
+    compile libs.easymock
+    compile libs.mockito_core
+    compile libs.truth
+    compile libs.truth_java8_extension
+    compile libs.jimfs
+    compile(libs.smali_dexlib) {
+        // commons-cli is not needed as we're not using dexlib from the command line.
+        exclude group: 'commons-cli', module: 'commons-cli'
+    }
+    compile libs.asm
+}
+
+sourceSets {
+    main.resources.srcDir 'src/main/java'
+    test.resources.srcDir 'src/test/java'
+}
+
+project.ext.pomName = 'Android Tools Test Utilities'
+project.ext.pomDesc = 'API used by lint testing infrastructure'
+
+apply from: "$rootDir/buildSrc/base/publish.gradle"
+apply from: "$rootDir/buildSrc/base/bintray.gradle"
+apply from: "$rootDir/buildSrc/base/javadoc.gradle"

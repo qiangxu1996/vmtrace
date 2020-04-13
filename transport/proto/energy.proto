@@ -1,0 +1,93 @@
+/*
+ * Copyright (C) 2017 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+
+package profiler.proto;
+option java_package = "com.android.tools.profiler.proto";
+option java_outer_classname = "EnergyProfiler";
+
+import "common.proto";
+import "energy_data.proto";
+
+service EnergyService {
+  // Starts collecting execution metrics of a running app, such as energy
+  // samples and events. Does nothing if the app is already being monitored.
+  rpc StartMonitoringApp(EnergyStartRequest) returns (EnergyStartResponse) {
+  }
+
+  // Stops monitoring a running app. Does nothing if the app is not being
+  // monitored, or is not running.
+  rpc StopMonitoringApp(EnergyStopRequest) returns (EnergyStopResponse) {
+  }
+
+  // Requests energy samples from app with given |process_id|, in the time range
+  // from |start_timestamp| (exclusive) to |end_timestamp| (inclusive), or
+  // mathematically written as in interval (start_timestamp, end_timestamp].
+  rpc GetSamples(EnergyRequest) returns (EnergySamplesResponse) {
+  }
+
+  // Requests energy event data such as WakeLock, Alarm with given time range.
+  // Request data range is same as |GetSamples(start_timestamp, end_timestamp]|.
+  // Response data includes repeated data in time order.
+  rpc GetEvents(EnergyRequest) returns (EnergyEventsResponse) {
+  }
+
+  // Requests an event group (where all events in a series share the same ID)
+  rpc GetEventGroup(EnergyEventGroupRequest) returns (EnergyEventsResponse) {
+  }
+}
+
+message EnergyStartRequest {
+  Session session = 1;
+}
+
+message EnergyStartResponse {
+}
+
+message EnergyStopRequest {
+  Session session = 1;
+}
+
+message EnergyStopResponse {
+}
+
+message EnergyRequest {
+  Session session = 1;
+  int64 start_timestamp = 2;
+  int64 end_timestamp = 3;
+}
+
+message EnergyEventGroupRequest {
+  Session session = 1;
+  int64 event_id = 2;
+}
+
+message EnergySamplesResponse {
+  // List of Energy usage sample data.
+  repeated EnergySample samples = 1;
+}
+
+message EnergySample {
+  // Time when the energy sample usages occurred.
+  int64 timestamp = 1;
+  // Detailed energy usage data, e.g. CPU, network.
+  EnergyUsageData energy_usage = 2;
+}
+
+message EnergyEventsResponse {
+  // Unified events that contain energy event details ordered by time.
+  repeated Event events = 1;
+}

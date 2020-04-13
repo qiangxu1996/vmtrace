@@ -1,0 +1,23 @@
+apply plugin: 'java'
+apply plugin: 'jacoco-tools-base'
+apply plugin: 'sdk-java-lib'
+
+group = 'com.android.tools'
+archivesBaseName = 'draw9patch'
+version = rootProject.ext.baseVersion
+
+dependencies {
+    testCompile libs.junit
+}
+
+sourceSets {
+    main.resources.srcDir 'src/main/java'
+    test.resources.srcDir 'src/test/java'
+}
+
+project.ext.pomName = 'Draw 9-patch tool'
+project.ext.pomDesc = 'WYSIWYG editor for automatically resizing images'
+
+apply from: "$rootDir/buildSrc/base/publish.gradle"
+apply from: "$rootDir/buildSrc/base/bintray.gradle"
+apply from: "$rootDir/buildSrc/base/javadoc.gradle"

@@ -1,0 +1,35 @@
+syntax = "proto3";
+option java_package = "com.android.tools.deployer.devices";
+option java_outer_classname = "Proto";
+
+message ShellCommand {
+  string command = 1;
+  bytes stdin = 2;
+  int32 uid = 3;
+}
+
+message CommandResponse {
+  bytes stdout = 1;
+  int32 exit_code = 2;
+  bool terminate = 3;
+}
+
+message GetAppUidRequest {
+  string package = 1;
+}
+
+message GetAppUidResponse {
+  int32 uid = 1;  // If 0 app does not exist.
+}
+
+message RecordCommandRequest {
+  string command = 1;
+}
+
+message RecordCommandResponse {}
+
+service FakeDeviceService {
+  rpc GetAppUid(GetAppUidRequest) returns (GetAppUidResponse) {}
+  rpc RecordCommand(RecordCommandRequest) returns (RecordCommandResponse) {}
+  rpc ExecuteCommand(stream ShellCommand) returns (stream CommandResponse) {}
+}
