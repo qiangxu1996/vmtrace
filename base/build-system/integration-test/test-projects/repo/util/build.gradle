@@ -1,0 +1,26 @@
+plugins {
+    id 'maven-publish'
+}
+
+apply plugin: 'java-library'
+apply from: "../commonLocalRepo.gradle"
+
+sourceCompatibility = "1.6"
+targetCompatibility = "1.6"
+
+publishing {
+    repositories {
+        maven { url '../testrepo' }
+    }
+    publishing {
+        publications {
+            java(MavenPublication) {
+                groupId = 'com.example.android.multiproject'
+                artifactId = 'util'
+                version = '1.0'
+
+                from components.java
+            }
+        }
+    }
+}

@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="gradle-api">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../out/.gradle/caches/5.6.4/generated-gradle-jars/gradle-api-5.6.4.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,20 @@
+apply plugin: 'java'
+
+group = 'com.android.tools.external.com-intellij'
+archivesBaseName = 'intellij-core'
+version = rootProject.ext.baseVersion
+
+dependencies {
+    compile 'org.jetbrains.trove4j:trove4j:20160824'
+}
+
+jar {
+    from zipTree("../../../../../prebuilts/tools/common/lint-psi/intellij-core/intellij-core.jar")
+}
+
+project.ext.pomName = 'IntelliJ IDEA Core'
+project.ext.pomDesc = 'IntelliJ IDEA Core'
+
+apply from: "$rootDir/buildSrc/base/publish.gradle"
+apply from: "$rootDir/buildSrc/base/bintray.gradle"
+apply from: "$rootDir/buildSrc/base/javadoc.gradle"

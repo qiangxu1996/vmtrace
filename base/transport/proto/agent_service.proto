@@ -1,0 +1,115 @@
+/*
+ * Copyright (C) 2016 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+
+package profiler.proto;
+option java_package = "com.android.tools.profiler.proto";
+option java_outer_classname = "Agent";
+
+import "commands.proto";
+import "common.proto";
+import "memory_data.proto";
+
+service AgentService {
+  // A simple ping mechanism to notify perfd of the agent's existence, vice
+  // versa.
+  rpc HeartBeat(HeartBeatRequest) returns (EmptyResponse) {}
+
+  // Equilvalent to the |Execute| rpc call in transport.proto, but this command
+  // orignates from the app agent. Note that the command will be handled via
+  // the daemon (if a handler is present), then forwarded back to the app agent
+  // via the generic command routing logic. If we deem the extra forward to
+  // be problematic/unnecessary, we can introduce an additional flag to commands
+  // to halt forwarding.
+  rpc SendCommand(SendCommandRequest) returns (EmptyResponse) {}
+
+  rpc SendEvent(SendEventRequest) returns (EmptyResponse) {}
+
+  rpc SendBytes(SendBytesRequest) returns (EmptyResponse) {}
+
+  // Register an agent in the transport daemon and open a stream where daemon
+  // can forward Commands to the agent.
+  rpc RegisterAgent(RegisterAgentRequest) returns (stream Command) {}
+}
+
+message HeartBeatRequest {
+  // The process' id. Note that the agent's pid is the same as the pid we use
+  // for the heartbeat because the agent resides within the process being
+  // profiled.
+  int32 pid = 1;
+}
+
+message SendCommandRequest {
+  Command command = 1;
+}
+
+message SendEventRequest {
+  // The event. It contains the id of the process that generated the Event.
+  Event event = 1;
+}
+
+message SendBytesRequest {
+  // string id presenting the bytes (e.g. file name)
+  string name = 1;
+  oneof union {
+    // If set, byte content to append to the file of given |name|.
+    // Note that this field must be smaller than 4 MB which is the size limit for each
+    // gRPC message.
+    bytes bytes = 2;
+    // If set to true, the content of the file of given |name| is complete.
+    // If set to false, this request is no-op.
+    // It's a no-op to mark a file |complete| with no |bytes| added before.
+    // To send an empty file, send an empty |bytes| first and then mark it |complete|.
+    bool is_complete = 3;
+  }
+}
+
+// TODO b/120504084 replace with google.protobuf.empty
+// Currently there are multiple locations where the well known protos
+// exists in our codebase. One inside our prebuilt maven repo, the other
+// one in the external protobuf repo. For some reason it is not as simple
+// as including @protobuf_repo//:well_known_protos in cc_grpc_proto_library
+// rule, so more investigation is needed.
+message EmptyResponse {}
+
+// Proto used for configuring the agent.
+// The message itself is created and pushed to device from Studio
+// and can be access via profiler::Config::Instance().
+message AgentConfig {
+  message MemoryConfig {
+    // equivalent to profiler.livealloc flag in Studio.
+    bool use_live_alloc = 1;
+    // the maximum depth of allocation stack traces to record.
+    int32 max_stack_depth = 2;
+    // Enable tracking of creation and deletion of globla JNI references.
+    bool track_global_jni_refs = 3;
+    // Path to the app dir: usually /data/app/
+    string app_dir = 4;
+    // The allocation sampling rate to use when starting a profiling session.
+    MemoryAllocSamplingData sampling_rate = 5;
+  }
+  CommonConfig common = 1;
+  MemoryConfig mem = 2;
+  // equivalent to StudioFlags.PROFILER_CPU_API_TRACING.
+  bool cpu_api_tracing_enabled = 3;
+  // whether the agent should initialize advanced profiling on attach.
+  bool startup_profiling_enabled = 4;
+}
+
+message RegisterAgentRequest {
+  // pid of the process where the agent lives in.
+  int32 pid = 1;
+}

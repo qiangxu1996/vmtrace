@@ -1,0 +1,39 @@
+buildscript { apply from: "../commonBuildScript.gradle" }
+apply from: "../commonHeader.gradle"
+apply plugin: 'com.android.library'
+apply from: "../commonLocalRepo.gradle"
+apply plugin: 'maven-publish'
+
+publishing {
+    repositories {
+        maven { url '../testrepo' }
+    }
+}
+
+repositories {
+    maven { url '../testrepo' }
+}
+
+dependencies {
+    api 'com.example.android.multiproject:util:1.0'
+    releaseApi 'com.google.guava:guava:19.0'
+}
+
+android {
+    compileSdkVersion rootProject.latestCompileSdk
+    buildToolsVersion = rootProject.buildToolsVersion
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                groupId = 'com.example.android.multiproject'
+                artifactId = 'baseLib'
+                version = '1.0-SNAPSHOT'  // using SNAPSHOT as it may be handled differently by the plugin.
+
+                from components.release
+            }
+        }
+    }
+}
