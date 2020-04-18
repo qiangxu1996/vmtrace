@@ -9,7 +9,16 @@ repositories {
     mavenCentral()
 }
 
+sourceSets {
+    main {
+        java {
+            exclude("com/android/tools/perflib/vmtrace/viz/**")
+        }
+    }
+}
+
 dependencies {
+    implementation("com.google.guava:guava:27.0.1-jre")
     testCompile("junit", "junit", "4.12")
 }
 
